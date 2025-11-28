@@ -11,7 +11,7 @@ export default function StoryDetailPage() {
 
   useEffect(() => {
     async function load() {
-      const loadFirebase = (await import("../../(client)/lib/firebaseClient")).default;
+      const loadFirebase = (await import("../../../lib/firebaseClient")).default;
       const { db } = await loadFirebase();
 
       const { doc, getDoc } = await import("firebase/firestore");

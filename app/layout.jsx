@@ -10,7 +10,6 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className="min-h-screen bg-gradient-to-br from-sky-50 to-emerald-50 text-slate-900">
-        <AuthHeader />
         {children}
       </body>
     </html>

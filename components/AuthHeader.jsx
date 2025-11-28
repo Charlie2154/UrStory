@@ -37,9 +37,7 @@ export default function AuthHeader() {
   return (
     <header className="bg-white border-b border-slate-200 shadow-sm">
       <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-        <Link href="/" className="text-2xl font-bold text-teal-600">
-          U
-        </Link>
+        <div className="text-2xl font-bold text-teal-600"></div>
 
         {user ? (
           <div className="flex items-center gap-4">

@@ -5,23 +5,10 @@ import loadFirebase from "../lib/firebaseClient";
 import { onAuthStateChanged } from "firebase/auth";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
-export default function ChatStoryEditor({ storyTitle = "Untitled Story", user }) {
-  const [messages, setMessages] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem("cse_messages_v1")) || [];
-    } catch {
-      return [];
-    }
-  });
-
-  const [storyText, setStoryText] = useState(() => {
-    try {
-      return localStorage.getItem("cse_story_v1") || "";
-    } catch {
-      return "";
-    }
-  });
-
+export default function ChatStoryEditor({ storyTitle = "Untitled Story", user, storyType = "freeform", initialPrompt = null }) {
+  const [isHydrated, setIsHydrated] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [storyText, setStoryText] = useState("");
   const [pendingStoryUpdate, setPendingStoryUpdate] = useState("");
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -29,16 +16,28 @@ export default function ChatStoryEditor({ storyTitle = "Untitled Story", user })
 
   const chatRef = useRef(null);
 
+  // Clear localStorage and initialize state only after hydration
+  useEffect(() => {
+    localStorage.removeItem("cse_messages_v1");
+    localStorage.removeItem("cse_story_v1");
+    setMessages([]);
+    setStoryText("");
+    setPendingStoryUpdate("");
+    setIsHydrated(true);
+  }, []);
+
   // Save to localStorage
   useEffect(() => {
+    if (!isHydrated) return;
     localStorage.setItem("cse_messages_v1", JSON.stringify(messages));
-  }, [messages]);
+  }, [messages, isHydrated]);
 
   useEffect(() => {
+    if (!isHydrated) return;
     localStorage.setItem("cse_story_v1", storyText);
-  }, [storyText]);
+  }, [storyText, isHydrated]);
 
-  useEffect(() => scrollChatToBottom(), [messages, isLoading]);
+  useEffect(() => scrollChatToBottom(), [messages, isLoading, isHydrated]);
 
   // Welcome the user on their first sign-in (creationTime === lastSignInTime)
   useEffect(() => {
@@ -70,7 +69,7 @@ export default function ChatStoryEditor({ storyTitle = "Untitled Story", user })
               { text: `User ${name} just signed in and would like a warm storytelling introduction.` },
             ]);
 
-            if (starter) setPendingStoryUpdate(starter);
+            if (starter?.storyText) setPendingStoryUpdate(starter.storyText);
           } catch (e) {
             console.error("Starter generation failed:", e);
           }
@@ -94,30 +93,23 @@ export default function ChatStoryEditor({ storyTitle = "Untitled Story", user })
       try {
         const name = user.displayName || (user.email || "").split("@")[0] || "friend";
 
+        const welcomeText = initialPrompt || `Hi ${name}! 👋 Welcome to U — I'm your writing partner. Tell me about a memory, a feeling, or a scene you'd like to turn into a story, and I'll help shape it with you.`;
+
         const welcomeMsg = {
           id: genId(),
           role: "ai",
-          text: `Hi ${name}! 👋 Welcome to U — I'm your writing partner. Tell me about a memory, a feeling, or a scene you'd like to turn into a story, and I'll help shape it with you.`,
+          text: welcomeText,
           time: Date.now(),
         };
         setMessages((m) => [...m, welcomeMsg]);
 
-        setIsLoading(true);
-        try {
-          const starter = await generateStory([
-            { text: `User ${name} (test) is starting a new story.` },
-          ]);
-
-          if (starter) setPendingStoryUpdate(starter);
-        } catch (e) {
-          console.error("Starter generation failed:", e);
-        }
-        setIsLoading(false);
+        // Don't auto-generate for now on type-specific pages
+        // Users will start typing themselves
       } catch (err) {
         console.error("Error in mock welcome flow:", err);
       }
     })();
-  }, [user]);
+  }, [user, initialPrompt]);
 
   function scrollChatToBottom() {
     if (chatRef.current) {
@@ -147,7 +139,10 @@ export default function ChatStoryEditor({ storyTitle = "Untitled Story", user })
       }
 
       const data = await response.json();
-      return data.storyText;
+      return {
+        storyText: data.storyText || "",
+        followUp: data.followUp || "",
+      };
     } catch (err) {
       console.error("Story generation error:", err);
       throw err;
@@ -159,24 +154,31 @@ export default function ChatStoryEditor({ storyTitle = "Untitled Story", user })
     if (!text || isLoading) return;
 
     setError("");
-    const userMsg = { id: genId(), role: "user", text, time: Date.now() };
+    const id = genId();
+    // mark the user message with an acknowledgement state
+    const userMsg = { id, role: "user", text, time: Date.now(), ack: "pending" };
     setMessages((m) => [...m, userMsg]);
     setInput("");
     setIsLoading(true);
 
     try {
-      const newStoryUpdate = await generateStory([...messages, userMsg]);
-      setPendingStoryUpdate(newStoryUpdate);
+      const result = await generateStory([...messages, userMsg]);
+      if (result.storyText) setPendingStoryUpdate(result.storyText);
 
-      const aiMsg = {
-        id: genId(),
-        role: "ai",
-        text: "Story updated! Review the changes on the right.",
-        time: Date.now(),
-      };
-      setMessages((m) => [...m, aiMsg]);
+      // mark this user message as acknowledged (turn tick green)
+      setMessages((m) => m.map((mm) => (mm.id === id ? { ...mm, ack: "done" } : mm)));
+
+      // only add the follow-up question from AI (no generic 'Story updated' message)
+      if (result.followUp) {
+        const follow = { id: genId(), role: "ai", text: result.followUp, time: Date.now() };
+        setMessages((m) => [...m, follow]);
+      }
     } catch (err) {
       setError("Failed to generate story. Please try again.");
+
+      // clear the pending ack on failure
+      setMessages((m) => m.map((mm) => (mm.id === id ? { ...mm, ack: "none" } : mm)));
+
       const aiMsg = {
         id: genId(),
         role: "ai",
@@ -268,17 +270,39 @@ export default function ChatStoryEditor({ storyTitle = "Untitled Story", user })
           {messages.map((msg) => (
             <div
               key={msg.id}
-              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+              className={`flex items-end ${msg.role === "user" ? "justify-end" : "justify-start"}`}
             >
-              <div
-                className={`max-w-xs px-4 py-2 rounded-lg text-sm ${
-                    msg.role === "user"
-                      ? "bg-teal-600 text-white rounded-br-none"
-                      : "bg-slate-100 text-slate-800 rounded-bl-none"
-                  }`}
-              >
-                {msg.text}
-              </div>
+              {msg.role === "ai" ? (
+                <div
+                  className={`max-w-xs px-4 py-2 rounded-lg text-sm bg-slate-100 text-slate-800 rounded-bl-none`}
+                >
+                  {msg.text}
+                </div>
+              ) : (
+                <div className="flex items-center space-x-2">
+                  <div
+                    className={`max-w-xs px-4 py-2 rounded-lg text-sm bg-teal-600 text-white rounded-br-none`}
+                  >
+                    {msg.text}
+                  </div>
+
+                  {/* acknowledgement tick */}
+                  <div className="flex-shrink-0">
+                    {msg.ack === "pending" && (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-slate-400">
+                        <circle cx="12" cy="12" r="9" stroke="#94a3b8" strokeWidth="1.5" fill="transparent" />
+                      </svg>
+                    )}
+
+                    {msg.ack === "done" && (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="10" fill="#16a34a" />
+                        <path d="M7.5 12.5l2.5 2.5 6-6" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           ))}
 
