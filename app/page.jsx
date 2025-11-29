@@ -28,47 +28,91 @@ export default function Home() {
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
-      {/* Floating particles */}
+    <main className="relative min-h-screen overflow-hidden bg-black">
+      {/* Deep space gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black via-slate-950 to-indigo-950/30" />
+      
+      {/* Stars - more numerous, twinkling */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(20)].map((_, i) => {
+        {[...Array(100)].map((_, i) => {
           const initialX = typeof window !== 'undefined' ? Math.random() * window.innerWidth : Math.random() * 1920;
           const initialY = typeof window !== 'undefined' ? Math.random() * window.innerHeight : Math.random() * 1080;
-          const targetX = typeof window !== 'undefined' ? Math.random() * window.innerWidth : Math.random() * 1920;
-          const targetY = typeof window !== 'undefined' ? Math.random() * window.innerHeight : Math.random() * 1080;
-          
+          const size = Math.random() > 0.8 ? 2 : 1;
+          const twinkleDelay = Math.random() * 5;
+
           return (
             <motion.div
               key={i}
-              className="absolute w-1 h-1 bg-white rounded-full opacity-30"
-              initial={{
-                x: initialX,
-                y: initialY
+              className="absolute bg-white rounded-full"
+              style={{
+                width: size,
+                height: size,
+                left: initialX,
+                top: initialY
               }}
               animate={{
-                x: targetX,
-                y: targetY,
-                scale: [1, 1.5, 1],
-                opacity: [0.3, 0.6, 0.3]
+                opacity: [0.2, 1, 0.2],
+                scale: [1, 1.3, 1]
               }}
               transition={{
-                duration: 10 + Math.random() * 10,
+                duration: 3 + Math.random() * 2,
                 repeat: Infinity,
+                delay: twinkleDelay,
                 ease: "easeInOut"
               }}
             />
           );
         })}
-      </div>      {/* Cursor glow effect */}
+      </div>
+
+      {/* Shooting stars */}
+      {[...Array(3)].map((_, i) => (
+        <motion.div
+          key={`shooting-${i}`}
+          className="absolute w-1 h-1 bg-white rounded-full"
+          style={{
+            boxShadow: "0 0 10px 2px rgba(255,255,255,0.8)"
+          }}
+          initial={{
+            x: -100,
+            y: Math.random() * 400,
+            opacity: 0
+          }}
+          animate={{
+            x: typeof window !== 'undefined' ? window.innerWidth + 100 : 2000,
+            y: (Math.random() * 400) + 200,
+            opacity: [0, 1, 1, 0]
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            delay: i * 4 + 2,
+            ease: "easeIn"
+          }}
+        />
+      ))}
+
+      {/* Cursor glow - softer, starlight effect */}
       <motion.div
-        className="fixed w-96 h-96 rounded-full pointer-events-none mix-blend-screen"
+        className="fixed w-96 h-96 rounded-full pointer-events-none mix-blend-screen opacity-40"
         style={{
-          background: "radial-gradient(circle, rgba(100,200,255,0.15) 0%, transparent 70%)",
+          background: "radial-gradient(circle, rgba(200,220,255,0.2) 0%, transparent 70%)",
           left: mousePos.x - 192,
           top: mousePos.y - 192,
         }}
-        animate={{ scale: [1, 1.1, 1] }}
-        transition={{ duration: 2, repeat: Infinity }}
+        animate={{ scale: [1, 1.2, 1] }}
+        transition={{ duration: 3, repeat: Infinity }}
+      />
+
+      {/* Shadow vignette that parts for the doors */}
+      <motion.div
+        className="absolute inset-0 pointer-events-none"
+        initial={{ opacity: 1 }}
+        animate={{ opacity: 0.7 }}
+        transition={{ duration: 2, delay: 0.5 }}
+        style={{
+          background: "radial-gradient(ellipse at center, transparent 20%, rgba(0,0,0,0.9) 80%)"
+        }}
       />
 
       {/* Login button */}
@@ -81,21 +125,52 @@ export default function Home() {
         </Link>
       </div>
 
-      {/* Welcome message */}
+      {/* Welcome message - mystical entrance */}
       <AnimatePresence>
         {showWelcome && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="absolute top-1/4 left-1/2 transform -translate-x-1/2 text-center z-40"
+            className="absolute inset-0 flex items-center justify-center z-50 bg-black/95"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1.5 }}
           >
-            <h1 className="text-6xl md:text-8xl font-bold text-white mb-4 drop-shadow-2xl">
-              U
-            </h1>
-            <p className="text-white/80 text-xl md:text-2xl">
-              Are you ready to see your story transformed?
-            </p>
+            <motion.div
+              className="text-center"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 1 }}
+            >
+              <motion.div
+                className="text-5xl mb-4"
+                animate={{ 
+                  textShadow: [
+                    "0 0 20px rgba(200,220,255,0.5)",
+                    "0 0 40px rgba(200,220,255,0.8)",
+                    "0 0 20px rgba(200,220,255,0.5)"
+                  ]
+                }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                ✨
+              </motion.div>
+              <motion.h1 
+                className="text-3xl font-light text-white/90 tracking-wider"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5, duration: 1 }}
+              >
+                Welcome to the Portal
+              </motion.h1>
+              <motion.p
+                className="text-sm text-white/60 mt-2"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1, duration: 1 }}
+              >
+                Where shadows part and stories begin...
+              </motion.p>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -112,16 +187,38 @@ export default function Home() {
             onMouseLeave={() => setHoveredDoor(null)}
             className="relative"
           >
-            {/* Door frame */}
-            <div className="relative w-64 h-96 md:w-80 md:h-[32rem] rounded-3xl overflow-hidden border-4 border-emerald-400/30 bg-gradient-to-b from-emerald-900/40 to-teal-900/40 backdrop-blur-sm shadow-2xl transition-all duration-500 group-hover:border-emerald-400/60 group-hover:shadow-emerald-500/50">
+            {/* Door frame - emerges from shadow, glows brighter */}
+            <motion.div 
+              className="relative w-64 h-96 md:w-80 md:h-[32rem] rounded-3xl overflow-hidden border-4 bg-gradient-to-b from-emerald-900/40 to-teal-900/40 backdrop-blur-sm transition-all duration-500"
+              initial={{ 
+                borderColor: "rgba(52, 211, 153, 0.1)",
+                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)"
+              }}
+              animate={{
+                borderColor: hoveredDoor === "write" ? "rgba(52, 211, 153, 0.8)" : "rgba(52, 211, 153, 0.3)",
+                boxShadow: hoveredDoor === "write" 
+                  ? "0 0 60px 10px rgba(16, 185, 129, 0.6), 0 25px 50px -12px rgba(0, 0, 0, 0.5)"
+                  : "0 0 30px 5px rgba(16, 185, 129, 0.3), 0 25px 50px -12px rgba(0, 0, 0, 0.5)"
+              }}
+              transition={{ duration: 0.5 }}
+            >
               
-              {/* Door glow */}
+              {/* Door inner glow - pulses brighter on hover */}
               <motion.div
-                className="absolute inset-0 bg-gradient-to-b from-emerald-500/20 to-transparent"
+                className="absolute inset-0 bg-gradient-to-b from-emerald-400/30 to-transparent"
                 animate={{
-                  opacity: hoveredDoor === "write" ? [0.3, 0.6, 0.3] : 0.2
+                  opacity: hoveredDoor === "write" ? [0.4, 0.8, 0.4] : 0.2
                 }}
                 transition={{ duration: 2, repeat: Infinity }}
+              />
+              
+              {/* Spotlight effect from top */}
+              <motion.div
+                className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-1/2 bg-gradient-to-b from-white/10 to-transparent"
+                animate={{
+                  opacity: hoveredDoor === "write" ? 0.3 : 0.1
+                }}
+                transition={{ duration: 0.5 }}
               />
 
               {/* Door content */}
@@ -169,7 +266,7 @@ export default function Home() {
                   transition={{ duration: 1.5, repeat: Infinity }}
                 />
               )}
-            </div>
+            </motion.div>
           </motion.div>
         </Link>
 
@@ -195,19 +292,37 @@ export default function Home() {
             onMouseLeave={() => setHoveredDoor(null)}
             className="relative"
           >
-            {/* Door frame */}
-            <div className="relative w-64 h-96 md:w-80 md:h-[32rem] rounded-3xl overflow-hidden border-4 border-blue-400/30 bg-gradient-to-b from-blue-900/40 to-indigo-900/40 backdrop-blur-sm shadow-2xl transition-all duration-500 group-hover:border-blue-400/60 group-hover:shadow-blue-500/50">
-              
-              {/* Door glow */}
+              {/* Door frame - emerges from shadow, glows brighter */}
               <motion.div
-                className="absolute inset-0 bg-gradient-to-b from-blue-500/20 to-transparent"
-                animate={{
-                  opacity: hoveredDoor === "read" ? [0.3, 0.6, 0.3] : 0.2
+                className="relative w-64 h-96 md:w-80 md:h-[32rem] rounded-3xl overflow-hidden border-4 bg-gradient-to-b from-blue-900/40 to-indigo-900/40 backdrop-blur-sm transition-all duration-500"
+                initial={{ 
+                  borderColor: "rgba(96, 165, 250, 0.1)",
+                  boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)"
                 }}
-                transition={{ duration: 2, repeat: Infinity }}
-              />
-
-              {/* Door content */}
+                animate={{
+                  borderColor: hoveredDoor === "read" ? "rgba(96, 165, 250, 0.8)" : "rgba(96, 165, 250, 0.3)",
+                  boxShadow: hoveredDoor === "read" 
+                    ? "0 0 60px 10px rgba(59, 130, 246, 0.6), 0 25px 50px -12px rgba(0, 0, 0, 0.5)"
+                    : "0 0 30px 5px rgba(59, 130, 246, 0.3), 0 25px 50px -12px rgba(0, 0, 0, 0.5)"
+                }}
+                transition={{ duration: 0.5 }}
+              >                {/* Door inner glow - pulses brighter on hover */}
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-b from-blue-400/30 to-transparent"
+                  animate={{
+                    opacity: hoveredDoor === "read" ? [0.4, 0.8, 0.4] : 0.2
+                  }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                />
+                
+                {/* Spotlight effect from top */}
+                <motion.div
+                  className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-1/2 bg-gradient-to-b from-white/10 to-transparent"
+                  animate={{
+                    opacity: hoveredDoor === "read" ? 0.3 : 0.1
+                  }}
+                  transition={{ duration: 0.5 }}
+                />              {/* Door content */}
               <div className="relative z-10 flex flex-col items-center justify-center h-full p-8 text-center">
                 <motion.div
                   animate={{
@@ -252,7 +367,7 @@ export default function Home() {
                   transition={{ duration: 1.5, repeat: Infinity }}
                 />
               )}
-            </div>
+            </motion.div>
           </motion.div>
         </Link>
       </div>
