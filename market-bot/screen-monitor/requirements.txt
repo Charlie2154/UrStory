@@ -1,0 +1,6 @@
+pillow
+opencv-python-headless
+mss
+pytesseract
+numpy
+requests
